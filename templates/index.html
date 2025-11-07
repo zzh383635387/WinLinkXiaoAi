@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>SmartLink 控制台（Windows 版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body { padding:20px; background:#f6fbff; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial; color:#0f2333; }
+      .card-panel { background:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(30,144,255,0.08); padding:16px; }
+      .section-title { color:#1e90ff; font-weight:700; margin-bottom:10px; }
+      .item-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:15px; }
+      .item-card { border:1px solid rgba(30,144,255,0.1); border-radius:8px; padding:12px; background:#fff; position:relative; transition:all 0.2s; }
+      .item-card:hover { box-shadow:0 4px 10px rgba(0,0,0,0.08); }
+      .card-buttons { position:absolute; top:10px; right:10px; display:flex; gap:5px; }
+      .btn-circle { border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+
+      <!-- 页面大标题 -->
+      <div class="mb-4 text-center">
+        <h1 class="fw-bold" style="color:#1e90ff;">SmartLink 控制台（Windows 版）</h1>
+      </div>
+
+      <!-- 顶部两张卡片 -->
+      <div class="row mb-3 g-3">
+        <div class="col-md-6">
+          <div class="card-panel h-100 d-flex flex-column justify-content-between">
+            <div class="section-title">MQTT UID(秘钥）配置</div>
+            <form method="POST" action="{{ url_for('main.save_mqtt_uid') }}" class="d-flex gap-2 mt-2">
+              <input type="text" class="form-control" name="mqtt_uid" placeholder="输入 MQTT UID" value="{{ settings.mqtt_uid }}">
+              <button class="btn btn-primary">保存</button>
+            </form>
+<!--            &lt;!&ndash; 当前 UID 小字显示 &ndash;&gt;-->
+<!--            <div class="small text-muted mt-2">当前 UID: {{ settings.mqtt_uid or '未设置' }}</div>-->
+          </div>
+        </div>
+
+
+        <div class="col-md-6">
+          <div class="card-panel h-100 d-flex flex-column justify-content-between">
+            <div>
+              <div class="section-title mb-1">启动项管理</div>
+              <div class="text-muted small">可添加或编辑系统启动任务</div>
+            </div>
+            <button class="btn btn-success mt-2" data-bs-toggle="modal" data-bs-target="#editModal">＋ 添加启动项</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 启动项列表 -->
+      <div class="card-panel">
+        <div class="section-title">启动项列表</div>
+        {% if items|length == 0 %}
+          <div class="alert alert-warning">暂无启动项。</div>
+        {% else %}
+          <div class="item-grid">
+            {% for name, info in items %}
+              <div class="item-card">
+                <div class="card-buttons">
+                  <button class="btn btn-outline-primary btn-sm btn-circle edit-btn" data-name="{{ name }}">✏️</button>
+                  <form method="POST" action="{{ url_for('main.delete_item', name=name) }}" onsubmit="return confirm('确定删除 {{ name }}?');">
+                    <button class="btn btn-outline-danger btn-sm btn-circle">🗑️</button>
+                  </form>
+                </div>
+                <h5 class="fw-bold mb-1">{{ name }}</h5>
+                <div class="small text-muted">Topic: {{ info.bafy_topic or '-' }}</div>
+                <div class="small text-muted">类型: {{ info.cmd or 'cmd' }}</div>
+                <div class="small text-muted">参数: {{ info.para or '-' }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="text-center mt-4 small text-secondary">SmartLink Web © 2025</div>
+    </div>
+
+    <!-- 编辑/添加 模态框 -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="POST" action="{{ url_for('main.save_item') }}" id="editForm">
+            <div class="modal-header">
+              <h5 class="modal-title">编辑启动项</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="old_name" id="old_name">
+              <div class="mb-3">
+                <label class="form-label">名称</label>
+                <input type="text" class="form-control" name="name" id="item_name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">巴法云 Topic</label>
+                <input type="text" class="form-control" name="bafy_topic" id="item_bafy_topic">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">类型</label>
+                <input type="text" class="form-control" name="cmd" id="item_cmd" placeholder="cmd">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">参数</label>
+                <input type="text" class="form-control" name="para" id="item_para" placeholder="可留空">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      var map = {{ item_json_map|tojson }};
+
+      document.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.onclick = () => {
+          const name = btn.dataset.name;
+          if(map[name]){
+            const info = JSON.parse(map[name]);
+            document.getElementById("item_name").value = name;
+            document.getElementById("item_bafy_topic").value = info.bafy_topic || "";
+            document.getElementById("item_cmd").value = info.cmd || "cmd";
+            document.getElementById("item_para").value = info.para || "";
+            document.getElementById("old_name").value = name;
+            new bootstrap.Modal(document.getElementById("editModal")).show();
+          }
+        };
+      });
+    </script>
+  </body>
+</html>

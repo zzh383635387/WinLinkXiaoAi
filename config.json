@@ -1,0 +1,10 @@
+{
+  "mqtt_broker": "bemfa.com",
+  "mqtt_port": 9501,
+  "mqtt_uid": "0bfee87e303145a489758801249aa340",
+  "mqtt_keepalive": 60,
+  "listen_topics": [],
+  "http_host": "127.0.0.1",
+  "http_port": 5000,
+  "launcher_config_path": "launcher_config.json"
+}
