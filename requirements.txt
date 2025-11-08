@@ -1,2 +1,5 @@
 Flask
 paho-mqtt
+pystray
+Pillow
+pywin32

@@ -17,6 +17,6 @@ def create_app():
     app.config['JSON_AS_ASCII'] = False
 
     app.register_blueprint(main_bp)
-    # 启动 MQTT 监听（后台线程）
+    # 启动 MQTT 监听（后台线程）- 永远保持启动
     start_mqtt_listener(cfg)
     return app

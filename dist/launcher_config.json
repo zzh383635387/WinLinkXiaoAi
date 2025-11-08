@@ -1,9 +1,0 @@
-{
-    "关机": {
-        "type": "exe",
-        "cmd": "aaa",
-        "uri_scheme": "",
-        "card_id": "",
-        "bafy_topic": "V4TBl5Idl003"
-    }
-}

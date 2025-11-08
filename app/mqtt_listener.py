@@ -3,7 +3,7 @@ import json
 import time
 import traceback
 from .config import cfg
-from .utils import run_in_thread, log, atomic_read_json
+from .utils import run_in_thread, log, atomic_read_json, build_command
 try:
     import paho.mqtt.client as mqtt
 except Exception:
@@ -15,38 +15,45 @@ def _on_message(client, userdata, msg):
     log(f"[MQTT] 收到消息: topic={topic} payload={payload}")
     # 读取当前启动项配置并匹配 topic
     try:
-        items = atomic_read_json(cfg["launcher_config_path"])
+        items = cfg.get("launcher_items", {})
         for name, info in items.items():
             if not isinstance(info, dict):
                 continue
             if info.get("bafy_topic") == topic:
-                item_type = info.get("type", "").strip().lower()
-                # 支持三种触发：关机专门处理 / brightness带数值 / 普通on触发
+                # 解析 payload 参数
                 try:
-                    if name == "关机" and payload.lower() == "off":
-                        # 执行关机
-                        run_cmd = info.get("cmd", "")
-                        run_in_thread(lambda: __run_cmds_sync(run_cmd))
-                        log(f"[MQTT] 触发关机: {name}")
-                    elif item_type in ["brightness", "value", "number"]:
-                        # payload 可能是 "on#50" 或 "50"
-                        value = None
-                        if payload.startswith("on#"):
-                            try:
-                                value = int(payload.split("#", 1)[1])
-                            except Exception:
+                    payload_lower = payload.lower()
+                    payload_param = None
+                    # 解析 payload
+                    if '#' in payload:
+                        parts = payload.split('#', 1)
+                        if len(parts) == 2:
+                            action = parts[0].strip().lower()
+                            payload_param = parts[1].strip()
+                            if action in ["on", "off"]:
+                                # 使用 payload 中的参数
                                 pass
-                        elif payload.isdigit():
-                            value = int(payload)
-                        if value is not None:
-                            from .controller import set_brightness
-                            set_brightness(info.get("cmd", ""), value)
-                            log(f"[MQTT] 设置数值项 {name}={value}")
-                    elif payload.lower() == "on":
-                        # 普通触发运行
-                        from .routes import trigger_run_item_by_name
-                        trigger_run_item_by_name(name)
-                        log(f"[MQTT] 触发操作: {name}")
+                            else:
+                                # 如果第一部分不是 on/off，整个作为参数
+                                payload_param = payload
+                    elif payload_lower in ["on", "off"]:
+                        # 纯 on/off，使用配置中的 para
+                        payload_param = None
+                    
+                    # 构建命令
+                    cmd = info.get("cmd", "").strip()
+                    para = info.get("para", "").strip()
+                    
+                    # 如果 payload 中有参数，优先使用 payload 参数
+                    if payload_param:
+                        para = payload_param
+                    
+                    # 构建最终命令
+                    full_cmd = build_command(cmd, para)
+                    
+                    # 执行命令
+                    run_in_thread(lambda: __run_cmds_sync(full_cmd))
+                    log(f"[MQTT] 触发操作: {name}, payload: {payload}, 命令: {full_cmd}")
                 except Exception as ex:
                     log(f"[MQTT] 执行启动项出错: {ex}")
                     traceback.print_exc()
@@ -70,9 +77,14 @@ def start_mqtt_listener(cfg_local):
         last_cfg = {}
         while True:
             try:
+                # 重新加载配置以支持动态变化
+                from .config import load_cfg
+                cfg_current = load_cfg()
+                
+                # MQTT监听永远保持启动，不检查enable_backend
                 # 读取配置
-                cfg_now = atomic_read_json(cfg_local["launcher_config_path"])
-                mqtt_uid_now = cfg_local.get("mqtt_uid", "")
+                cfg_now = cfg_current.get("launcher_items", {})
+                mqtt_uid_now = cfg_current.get("mqtt_uid", "")
 
                 # 检查是否配置有变化
                 if cfg_now != last_cfg or (client and client._client_id.decode() != mqtt_uid_now):
@@ -86,11 +98,11 @@ def start_mqtt_listener(cfg_local):
                     client_id = mqtt_uid_now if mqtt_uid_now else None
                     client = mqtt.Client(client_id=client_id, clean_session=True)
                     client.on_message = _on_message
-                    broker = cfg_local.get("mqtt_broker")
-                    port = int(cfg_local.get("mqtt_port", 9501))
-                    keepalive = int(cfg_local.get("mqtt_keepalive", 60))
+                    broker = cfg_current.get("mqtt_broker")
+                    port = int(cfg_current.get("mqtt_port", 9501))
+                    keepalive = int(cfg_current.get("mqtt_keepalive", 60))
                     client.connect(broker, port, keepalive)
-                    log(f"[MQTT] 重新连接到 {broker}:{port} UID: {mqtt_uid_now[:6]}")
+                    log(f"[MQTT] 连接到 {broker}:{port} UID: {mqtt_uid_now[:6] if mqtt_uid_now else 'None'}")
                     # 订阅 topics
                     topics = {info.get("bafy_topic") for n, info in cfg_now.items() if
                               isinstance(info, dict) and info.get("bafy_topic")}
