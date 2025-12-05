@@ -80,7 +80,8 @@ def index():
 
 @bp.route("/save_item", methods=["POST"])
 def save_item():
-    from .config import cfg, save_cfg
+    from .config import load_cfg, save_cfg
+    cfg = load_cfg()
     launcher_items = cfg.get("launcher_items", {})
     old_name = request.form.get("old_name", "").strip()
     name = request.form.get("name", "").strip()
@@ -102,7 +103,8 @@ def save_item():
 
 @bp.route("/delete_item/<name>", methods=["POST"])
 def delete_item(name):
-    from .config import cfg, save_cfg
+    from .config import load_cfg, save_cfg
+    cfg = load_cfg()
     launcher_items = cfg.get("launcher_items", {})
     if name in launcher_items:
         launcher_items.pop(name)
@@ -113,7 +115,8 @@ def delete_item(name):
 
 @bp.route("/run_item/<name>", methods=["POST"])
 def run_item_api(name):
-    from .config import cfg
+    from .config import load_cfg, save_cfg
+    cfg = load_cfg()
     launcher_items = cfg.get("launcher_items", {})
     info = launcher_items.get(name)
     if not info:
@@ -128,10 +131,8 @@ def save_mqtt_uid():
     try:
         # 获取参数，允许空字符串（用于清空配置）
         uid = request.form.get("mqtt_uid", "").strip()
-        
-        from .config import cfg, save_cfg
-        # 重新加载配置以确保获取最新值
-        from .config import load_cfg
+
+        from .config import load_cfg,save_cfg
         cfg = load_cfg()
         
         # 保存 mqtt_uid（允许为空字符串）

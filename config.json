@@ -11,8 +11,18 @@
       "cmd": "shutdown -s -t 60",
       "para": "",
       "bafy_topic": "Xhf4ekJae009"
+    },
+    "电脑音量": {
+      "cmd": "nircmd setsysvolume XXX",
+      "para": "30000",
+      "bafy_topic": "k3bx14xXJ009"
+    },
+    "解锁电脑": {
+      "cmd": "nircmd sendkey enter press && nircmd sendkey 4 press && nircmd sendkey 4 press && nircmd sendkey 5 press && nircmd sendkey 5 press && nircmd sendkey 6 press && nircmd sendkey 6 press",
+      "para": "",
+      "bafy_topic": "EEwp8zlXi006"
     }
   },
-  "enable_server": false,
-  "auto_start": false
+  "enable_server": true,
+  "auto_start": true
 }

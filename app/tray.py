@@ -108,10 +108,10 @@ def toggle_auto_start():
             # 如果是开发模式，使用python运行WinLinkXiaoai.py
             run_py = Path(__file__).parent.parent / "WinLinkXiaoai.py"
             python_exe = sys.executable
-            exe_path = f'"{python_exe}" "{WinLinkXiaoai_py}"'
+            exe_path = f'"{python_exe}" "{run_py}"'
         
         # 注册表路径
-        key_path = r"Software\Microsoft\Windows\CurrentVersion\WinLinkXiaoai"
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
         app_name = "WinLinkXiaoai"
         
         if new_value:

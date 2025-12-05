@@ -2,7 +2,7 @@
 import json
 import time
 import traceback
-from .config import cfg
+from .config import load_cfg
 from .utils import run_in_thread, log, atomic_read_json, build_command
 try:
     import paho.mqtt.client as mqtt
@@ -15,6 +15,7 @@ def _on_message(client, userdata, msg):
     log(f"[MQTT] 收到消息: topic={topic} payload={payload}")
     # 读取当前启动项配置并匹配 topic
     try:
+        cfg = load_cfg()
         items = cfg.get("launcher_items", {})
         for name, info in items.items():
             if not isinstance(info, dict):
@@ -47,7 +48,10 @@ def _on_message(client, userdata, msg):
                     # 如果 payload 中有参数，优先使用 payload 参数
                     if payload_param:
                         para = payload_param
-                    
+
+                    if name == '电脑音量':
+                        para = str(655 * int(para))
+                        print(para)
                     # 构建最终命令
                     full_cmd = build_command(cmd, para)
                     

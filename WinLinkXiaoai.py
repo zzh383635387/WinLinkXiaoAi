@@ -40,7 +40,7 @@ def start_server():
             port = int(cfg.get("http_port", 5000))
             log(f"启动 WinLinkXiaoai Web: http://{host}:{port}")
             server_running = True
-            # 使用werkzeug的WSGIServer，支持shutdown
+
             server_instance = make_server(host, port, app, threaded=True)
             try:
                 server_instance.serve_forever()
